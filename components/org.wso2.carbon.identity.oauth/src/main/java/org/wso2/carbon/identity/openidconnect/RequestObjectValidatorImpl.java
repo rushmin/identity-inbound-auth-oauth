@@ -25,6 +25,9 @@ import com.nimbusds.jwt.SignedJWT;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.crypto.api.CryptoContext;
+import org.wso2.carbon.crypto.api.CryptoException;
+import org.wso2.carbon.crypto.api.CryptoService;
 import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
 import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
@@ -36,6 +39,7 @@ import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.RequestObjectException;
 import org.wso2.carbon.identity.oauth2.model.OAuth2Parameters;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.identity.openidconnect.internal.OpenIDConnectServiceComponentHolder;
 import org.wso2.carbon.identity.openidconnect.model.Constants;
 import org.wso2.carbon.identity.openidconnect.model.RequestObject;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
@@ -69,11 +73,34 @@ public class RequestObjectValidatorImpl implements RequestObjectValidator {
             RequestObjectException {
 
         SignedJWT jwt = requestObject.getSignedJWT();
-        Certificate certificate =
-                getCertificateForAlias(oAuth2Parameters.getTenantDomain(), oAuth2Parameters.getClientId());
-        boolean isVerified = isSignatureVerified(jwt, certificate);
-        requestObject.setIsSignatureValid(isVerified);
-        return isVerified;
+
+        CryptoService cryptoService = OpenIDConnectServiceComponentHolder.getCryptoService();
+
+
+        try {
+            String tenantDomain = oAuth2Parameters.getTenantDomain();
+            int tenantId = OAuth2Util.getTenantId(tenantDomain);
+
+            CryptoContext cryptoContext = new CryptoContext(tenantId, tenantDomain, "SERVICE-PROVIDER",
+                    null, null, null);
+
+            cryptoContext.addProperty("clientType", IdentityApplicationConstants.OAuth2.NAME);
+            cryptoContext.addProperty("clientID", oAuth2Parameters.getClientId());
+
+            Certificate certificate = cryptoService.getCertificate(cryptoContext);
+
+            boolean isVerified = isSignatureVerified(jwt, certificate);
+            requestObject.setIsSignatureValid(isVerified);
+            return isVerified;
+
+
+        } catch (IdentityOAuth2Exception e) {
+            e.printStackTrace();
+        } catch (CryptoException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     /**

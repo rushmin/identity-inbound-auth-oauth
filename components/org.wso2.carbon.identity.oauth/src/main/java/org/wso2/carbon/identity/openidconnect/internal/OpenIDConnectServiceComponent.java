@@ -24,6 +24,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.crypto.api.CryptoService;
+import org.wso2.carbon.crypto.api.PrivateKeyRetriever;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.event.handler.AbstractEventHandler;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
@@ -211,4 +213,35 @@ public class OpenIDConnectServiceComponent {
         }
         OpenIDConnectServiceComponentHolder.setRequestObjectHandler(null);
     }
+
+    @Reference(
+            name = "cryptoService",
+            service = CryptoService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetCryptoService"
+    )
+    protected void setCryptoService(CryptoService cryptoService){
+        OpenIDConnectServiceComponentHolder.setCryptoService(cryptoService);
+    }
+
+    protected void unsetCryptoService(CryptoService cryptoService){
+
+    }
+
+    @Reference(
+            name = "privateKeyRetriever",
+            service = PrivateKeyRetriever.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetPrivateKeyRetriever"
+    )
+    protected void setPrivateKeyRetriever(PrivateKeyRetriever privateKeyRetriever){
+        OpenIDConnectServiceComponentHolder.setPrivateKeyRetriever(privateKeyRetriever);
+    }
+
+    protected void unsetPrivateKeyRetriever(PrivateKeyRetriever privateKeyRetriever){
+    }
+
+
 }

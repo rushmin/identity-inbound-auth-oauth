@@ -50,6 +50,10 @@ import org.apache.oltu.oauth2.common.message.types.ResponseType;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.wso2.carbon.core.util.KeyStoreManager;
+import org.wso2.carbon.crypto.api.CryptoContext;
+import org.wso2.carbon.crypto.api.CryptoException;
+import org.wso2.carbon.crypto.api.CryptoService;
+import org.wso2.carbon.crypto.api.PrivateKeyRetriever;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
@@ -75,7 +79,6 @@ import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth.dao.OAuthConsumerDAO;
 import org.wso2.carbon.identity.oauth.internal.OAuthComponentServiceHolder;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
-import org.wso2.carbon.identity.oauth2.RequestObjectException;
 import org.wso2.carbon.identity.oauth2.authz.OAuthAuthzReqMessageContext;
 import org.wso2.carbon.identity.oauth2.config.SpOAuth2ExpiryTimeConfiguration;
 import org.wso2.carbon.identity.oauth2.dao.OAuthTokenPersistenceFactory;
@@ -83,6 +86,7 @@ import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.model.ClientCredentialDO;
 import org.wso2.carbon.identity.oauth2.token.OAuthTokenReqMessageContext;
+import org.wso2.carbon.identity.openidconnect.internal.OpenIDConnectServiceComponentHolder;
 import org.wso2.carbon.identity.openidconnect.model.RequestedClaim;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
@@ -1788,7 +1792,16 @@ public class OAuth2Util {
                 }
             }
 
-            Certificate publicCert = getX509CertOfOAuthApp(clientId, spTenantDomain);
+            CryptoService cryptoService = OpenIDConnectServiceComponentHolder.getCryptoService();
+
+            int tenantId = OAuth2Util.getTenantId(spTenantDomain);
+            CryptoContext cryptoContext = new CryptoContext(tenantId, spTenantDomain, "SERVICE-PROVIDER",
+                    null, null, null);
+
+            cryptoContext.addProperty("clientType", IdentityApplicationConstants.OAuth2.NAME);
+            cryptoContext.addProperty("clientID", clientId);
+
+            Certificate publicCert = cryptoService.getCertificate(cryptoContext);
             Key publicKey = publicCert.getPublicKey();
 
             JWEHeader header = new JWEHeader(encryptionAlgorithm, encryptionMethod);
@@ -1807,7 +1820,7 @@ public class OAuth2Util {
             encryptedJWT.encrypt(encrypter);
 
             return encryptedJWT;
-        } catch (JOSEException | NoSuchAlgorithmException | CertificateEncodingException e) {
+        } catch (JOSEException | NoSuchAlgorithmException | CertificateEncodingException | CryptoException e) {
             throw new IdentityOAuth2Exception("Error occurred while encrypting JWT for the client_id: " + clientId
                     + " with the tenant domain: " + spTenantDomain, e);
         }
@@ -1866,7 +1879,12 @@ public class OAuth2Util {
             }
 
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-            Key privateKey = getPrivateKey(tenantDomain, tenantId);
+
+            PrivateKeyRetriever privateKeyRetriever = OpenIDConnectServiceComponentHolder.getPrivateKeyRetriever();
+            CryptoContext cryptoContext = CryptoContext.buildEmptyContext(tenantId, tenantDomain);
+
+            Key privateKey = privateKeyRetriever.getPrivateKey(cryptoContext);
+
             JWSSigner signer = new RSASSASigner((RSAPrivateKey) privateKey);
             JWSHeader header = new JWSHeader((JWSAlgorithm) signatureAlgorithm);
             header.setKeyID(getThumbPrint(tenantDomain, tenantId));
@@ -1875,6 +1893,8 @@ public class OAuth2Util {
             signedJWT.sign(signer);
             return signedJWT;
         } catch (JOSEException e) {
+            throw new IdentityOAuth2Exception("Error occurred while signing JWT", e);
+        }catch (CryptoException e) {
             throw new IdentityOAuth2Exception("Error occurred while signing JWT", e);
         }
     }

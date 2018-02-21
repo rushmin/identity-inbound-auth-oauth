@@ -16,6 +16,8 @@
 
 package org.wso2.carbon.identity.openidconnect.internal;
 
+import org.wso2.carbon.crypto.api.CryptoService;
+import org.wso2.carbon.crypto.api.PrivateKeyRetriever;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.openidconnect.ClaimProvider;
 import org.wso2.carbon.identity.openidconnect.OpenIDConnectClaimFilter;
@@ -33,6 +35,8 @@ public class OpenIDConnectServiceComponentHolder {
     private static RequestObjectService requestObjectService;
     private static IdentityEventService identityEventService;
     private static RequestObjectHandler requestObjectHandler;
+    private static CryptoService cryptoService;
+    private static PrivateKeyRetriever privateKeyRetriever;
 
     public static RequestObjectHandler getRequestObjectHandler() {
 
@@ -66,6 +70,26 @@ public class OpenIDConnectServiceComponentHolder {
 
     public static OpenIDConnectServiceComponentHolder getInstance() {
         return instance;
+    }
+
+    public static void setCryptoService(CryptoService cryptoService) {
+
+        OpenIDConnectServiceComponentHolder.cryptoService = cryptoService;
+    }
+
+    public static CryptoService getCryptoService() {
+
+        return cryptoService;
+    }
+
+    public static void setPrivateKeyRetriever(PrivateKeyRetriever privateKeyRetriever) {
+
+        OpenIDConnectServiceComponentHolder.privateKeyRetriever = privateKeyRetriever;
+    }
+
+    public static PrivateKeyRetriever getPrivateKeyRetriever() {
+
+        return privateKeyRetriever;
     }
 
     /**

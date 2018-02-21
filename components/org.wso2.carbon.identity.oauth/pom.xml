@@ -84,6 +84,10 @@
             <artifactId>org.wso2.carbon.user.core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.crypto</groupId>
+            <artifactId>org.wso2.carbon.crypto.api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.registry.core</artifactId>
         </dependency>
@@ -349,6 +353,7 @@
                             org.wso2.carbon.core.*;version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.user.core.*;version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.utils.multitenancy;version="${carbon.kernel.imp.pkg.version.range}",
+                            org.wso2.carbon.crypto.api;version="[1.0.0,1.1.0)"
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.oauth.internal,
